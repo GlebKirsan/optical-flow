@@ -18,3 +18,10 @@ def build_dirs(directory):
             path_to[i] = new_dir
     path_to['parent'] = directory
     return path_to
+
+
+def get_path(file_name: str):
+    file_name = file_name.split()
+    folder = os.path.join(file_name[0], file_name[1])
+    sub_folder = '.'.join(file_name[:4])
+    return os.path.join(folder, sub_folder)

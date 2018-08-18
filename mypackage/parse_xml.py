@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 import os
 import json
-import comm
+from .helping import get_prefix
 
 
 def format_data(data):
@@ -56,7 +56,7 @@ def frame_info_to_json(path_to):
         if not payload:
             continue
 
-        prefix = common.get_prefix(xml_file)
+        prefix = get_prefix(xml_file)
         new_dir = os.path.join(path_to['jsn'], subdir, prefix)
         if not os.path.exists(new_dir):
             os.makedirs(new_dir)

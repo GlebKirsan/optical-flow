@@ -1,6 +1,6 @@
 import cv2
 import os
-from common import get_prefix
+from .helping import get_prefix
 
 
 def check(avi_list, jsn_list):
@@ -16,9 +16,8 @@ def check(avi_list, jsn_list):
     return res_avi_list, res_avi_pref
 
 
-def get_frames_num(jsn_path, avi_list, avi_prefxs):
+def get_frames_num_list(jsn_path, avi_list, avi_prefxs):
     avi_frame_list = {}
-    int_string = lambda x: int(x.split('.')[4])
 
     for i, avi in enumerate(avi_prefxs):
         for par_dir, subdirs, files in os.walk(jsn_path):
@@ -30,9 +29,13 @@ def get_frames_num(jsn_path, avi_list, avi_prefxs):
                     if avi_list[i] not in avi_frame_list:
                         avi_frame_list[avi_list[i]] = []
 
-                    avi_frame_list[avi_list[i]].append(int_string(file_name))
+                    avi_frame_list[avi_list[i]].append(get_frame_num(file_name))
 
     return avi_frame_list
+
+
+def get_frame_num(filename: str):
+    return int(filename.split('.')[4])
 
 
 def extract_frame(path_to):
@@ -42,7 +45,7 @@ def extract_frame(path_to):
             continue
 
         file_list = os.listdir(cur_dir)
-        avi_list = list(filter(lambda file: file.endswith('.avi'), file_list))
+        avi_list = list(filter(lambda file_name: file_name.endswith('.avi'), file_list))
         old_dir = os.getcwd()
         os.chdir(path_to['jsn'])
         jsn_list = []
@@ -55,9 +58,8 @@ def extract_frame(path_to):
         if not actual_avi_list:
             continue
 
-
         os.chdir(old_dir)
-        avi_frame_list = get_frames_num(path_to['jsn'], actual_avi_list, avi_prefxs)
+        avi_frame_list = get_frames_num_list(path_to['jsn'], actual_avi_list, avi_prefxs)
         for video_file, frames in avi_frame_list.items():
 
             video_file_name = get_prefix(video_file)
@@ -68,7 +70,7 @@ def extract_frame(path_to):
             if not os.path.exists(video_frames_dir):
                 os.makedirs(video_frames_dir)
 
-            get_frame.get_frame(frames, os.path.join(video_frames_dir, video_file_name + '.{}'), video_file)
+            get_frame(frames, os.path.join(video_frames_dir, video_file_name + '.{}'), video_file)
 
 
 def get_frame(frame_num_list, save_file, video_path):

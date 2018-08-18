@@ -1,12 +1,12 @@
 import time
-import os
 import argparse
-from mypackage import parse_xml, get_frame, common
+import os
+from mypackage import parse_xml, get_frame, helping, opt_flow
 
 
 def _main(**kwargs):
     st = time.time()
-    path_to = common.build_dirs(kwargs['dir'])
+    path_to = helping.build_dirs(kwargs['dir'])
     if kwargs['jsn']:
         parse_xml.frame_info_to_json(path_to)
     if kwargs['png']:
