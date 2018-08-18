@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 import os
 import json
-import common
+import comm
 
 
 def format_data(data):
