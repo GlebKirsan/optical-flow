@@ -21,7 +21,7 @@ def build_dirs(directory):
 
 
 def get_path(file_name: str):
-    file_name = file_name.split()
-    folder = os.path.join(file_name[0], file_name[1])
+    file_name = file_name.split('.')
+    folder = '.'.join(file_name[:2])
     sub_folder = '.'.join(file_name[:4])
     return os.path.join(folder, sub_folder)

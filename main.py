@@ -11,6 +11,8 @@ def _main(**kwargs):
         parse_xml.frame_info_to_json(path_to)
     if kwargs['png']:
         get_frame.extract_frame(path_to)
+    if kwargs['opt']:
+        opt_flow.main(path_to)
     print(time.time() - st)
 
 
@@ -29,11 +31,15 @@ if __name__ == "__main__":
     keys.add_argument('--png', '-p',
                       help='Extract non-empty frames from videos to png files',
                       action='store_true')
+    keys.add_argument('--optic', '-o',
+                      help='Calculate optical flow for existing frames in png',
+                      action='store_true')
 
     args = arg_parser.parse_args()
     if os.path.isdir(args.directory):
         _main(dir=args.directory,
               jsn=args.json,
-              png=args.png)
+              png=args.png,
+              opt=args.optic)
     else:
         raise NotADirectoryError(f"{args.directory} не является директорией!")
