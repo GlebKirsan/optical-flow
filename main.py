@@ -1,19 +1,19 @@
-import time
 import argparse
 import os
-from mypackage import parse_xml, get_frame, helping, opt_flow
+from src.common import build_dirs
+from src.parse_xml import frame_info_to_json
+from src.get_frame import extract_frame
+from src.opt_flow import calc_opt_flow
 
 
 def _main(**kwargs):
-    st = time.time()
-    path_to = helping.build_dirs(kwargs['dir'])
+    path_to = build_dirs(kwargs['dir'])
     if kwargs['jsn']:
-        parse_xml.frame_info_to_json(path_to)
+        frame_info_to_json(path_to)
     if kwargs['png']:
-        get_frame.extract_frame(path_to)
+        extract_frame(path_to)
     if kwargs['opt']:
-        opt_flow.main(path_to)
-    print(time.time() - st)
+        calc_opt_flow(path_to)
 
 
 if __name__ == "__main__":
