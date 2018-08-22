@@ -1,15 +1,16 @@
 import argparse
 import os
-from src.common import build_dirs
-from src.parse_xml import frame_info_to_json
+
+from src.common import build_excepting_dirs
+from src.parse_xml import create_json_with_frame_data
 from src.get_frame import extract_frame
 from src.opt_flow import calc_opt_flow
 
 
 def _main(**kwargs):
-    path_to = build_dirs(kwargs['dir'])
+    path_to = build_excepting_dirs(kwargs['dir'])
     if kwargs['jsn']:
-        frame_info_to_json(path_to)
+        create_json_with_frame_data(path_to)
     if kwargs['png']:
         extract_frame(path_to)
     if kwargs['opt']:
@@ -25,8 +26,9 @@ if __name__ == "__main__":
 
     keys = arg_parser.add_argument_group('keys')
     keys.add_argument('--json', '-j',
-                      help='Extract non-empty frames from directory/mar/.../.../*.xml '
-                           'to directory/jsn/.../.../xxx.yyy.yyy.{right, left}.{frame_number}.json',
+                      help='Extract non-empty frames from '
+                           'directory/mar/.../.../*.xml '
+                           'to directory/jsn/.../.../*.json',
                       action='store_true')
     keys.add_argument('--png', '-p',
                       help='Extract non-empty frames from videos to png files',
