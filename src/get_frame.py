@@ -7,11 +7,11 @@ from src.common import get_frame_num_from_filename
 from .parse_xml import create_json_with_frame_data
 
 
-def check(avi_list, jsn_list):
+def check(avi_list: list, jsn_list: list) -> list:
     """
-    :param avi_list:
-    :param jsn_list:
-    :return:
+    :param avi_list: Список avi файлов в директории.
+    :param jsn_list: Список json файлов в соотвествующей директории.
+    :return: Список avi файлов, для которых есть разметка.
 
     """
     res_avi_list = []
@@ -20,18 +20,17 @@ def check(avi_list, jsn_list):
 
     for i, avi in enumerate(avi_list_pref):
 
+        # Проверка на наличие разметки для видео
         if avi in jsn_list:
             res_avi_list.append(avi_list[i])
 
     return res_avi_list
 
 
-def get_frames_in_video_dict(jsn_path, avi_list):
+def get_frames_in_video_dict(jsn_path, avi_list) -> dict:
     """
-    :param jsn_path:
-    :param avi_list:
-    :return:
-
+    Функция возвращает словарь, в котором ключ - название видео,
+    значение - список с размеченными кадрами для этого видео.
     """
     avi_frame_list = {}
     for avi in avi_list:
@@ -46,9 +45,7 @@ def get_frames_in_video_dict(jsn_path, avi_list):
 
 def check_json_files(path_to):
     """
-    :param path_to:
-    :return:
-
+    Функция создаёт json файлы с разметкой, если они отсутствуют.
     """
     jsn_folders = os.listdir(path_to['jsn'])
     if not jsn_folders:
@@ -57,20 +54,16 @@ def check_json_files(path_to):
         print("jsn файлы созданы")
 
 
-def extract_frame(path_to:dict):
+def extract_frame(path_to: dict):
     """
-    :param path_to:
-    :return:
-
+    :param path_to: Словарь с путями до ключевых директорий.
     """
     check_json_files(path_to)
 
     for directory in os.listdir(path_to['inp']):
         cur_dir = os.path.join(path_to['inp'], directory)
 
-        file_list = os.listdir(cur_dir)
-
-        # Выбираем только видео файлы
+        # Выбираем только файлы с расширением avi
         videos_list = list(filter(lambda file_name: file_name.endswith('.avi'),
                                   os.listdir(cur_dir))
                            )
@@ -79,7 +72,6 @@ def extract_frame(path_to:dict):
 
         jsn_list = []
         jsn_folders = os.listdir(os.curdir)
-
         for folder in jsn_folders:
 
             if folder == directory:
@@ -116,12 +108,11 @@ def extract_frame(path_to:dict):
                                    video_file)
 
 
-def save_frames_from_video(frame_num_list, save_file, video_path):
+def save_frames_from_video(frame_num_list: list, save_file: str, video_path: str):
     """
-    :param frame_num_list:
-    :param save_file:
-    :param video_path:
-    :return:
+    :param frame_num_list: Список кадров для видео-файла.
+    :param save_file: f-строка с местом для номера кадра.
+    :param video_path: Видео, из которого извлекаются кадры.
 
     """
     cap = cv2.VideoCapture(video_path)

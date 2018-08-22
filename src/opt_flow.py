@@ -1,20 +1,25 @@
 import os
 import cv2
 import numpy as np
-from time import time   
+from time import time
 
-from src.common import make_path_from_name, get_frame_num_from_filename
+from src.common import make_path_from_name, get_frame_num_from_filename, get_file_prefix
 from .get_frame import extract_frame
 
 
-def preparation(video_file):
-    video_file_name = os.path.split(video_file)[1]
-    video_file_name_wo_ext = os.path.splitext(video_file_name)[0]
-    save_file_dir = os.path.splitext(video_file)[0].replace('inp', 'opt')
+def preparation(file_prefix: str, path_to_opt_folder: dict) -> str:
+    """
+    Функция подготавливает директории, куда будут сохраняться обработанные
+    кадры.
 
+    :param file_prefix: Строка вида xxx.yyy.zzz.ppp.
+    :param path_to_opt_folder: Путь до папки, где будут оптические потоки.
+    :return: Путь, куда будут сохраняться кадры.
+
+    """
+    save_file_dir = make_path_from_name(file_prefix, path_to_opt_folder)
     os.makedirs(save_file_dir, exist_ok=True)
-
-    return save_file_dir, video_file_name_wo_ext
+    return save_file_dir
 
 
 def draw_hsv(flow):
@@ -30,31 +35,42 @@ def draw_hsv(flow):
     return bgr
 
 
-def Farneback(video_file, frame_num):
+def Farneback(video_file: str, save_file_dir: str, frames_list: map) -> None:
+    """
+    Расчёт оптического потока методом Farneback.
+
+    :param video_file: Путь до видео, из которого будут извлекаться кадры.
+    :param save_file_dir: Папка, куда будут сохраняться изображения.
+    :param frames_list: map с кадрами, которые нужно обработать.
+
+    """
     cap = cv2.VideoCapture(video_file)
 
-    save_file_dir, video_file_name_wo_ext = preparation(video_file)
+    for frame_num in frames_list:
+        cap.set(1, frame_num - 1)
+        ret, frame1 = cap.read()
+        pr_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
 
-    cap.set(1, frame_num - 1)
-    ret, frame1 = cap.read()
-    pr_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
-
-    ret, frame2 = cap.read()
-    nx_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-    flow = cv2.calcOpticalFlowFarneback(pr_frame,
-                                        nx_frame,
-                                        None, 0.5, 3, 15, 3, 5, 1.2, 0)
-    hsv = draw_hsv(flow)
-    cv2.imwrite(
-        os.path.join(
-            save_file_dir,
-            video_file_name_wo_ext + f".{str(frame_num).zfill(6)}.Far.png"
-        ),
-        hsv
-    )
+        ret, frame2 = cap.read()
+        nx_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+        flow = cv2.calcOpticalFlowFarneback(pr_frame,
+                                            nx_frame,
+                                            None, 0.5, 3, 15, 3, 5, 1.2, 0)
+        hsv = draw_hsv(flow)
+        cv2.imwrite(
+            os.path.join(
+                save_file_dir,
+                save_file_dir + f".{str(frame_num).zfill(6)}.Far.png"
+            ),
+            hsv
+        )
 
 
-def check_png(path_to):
+def check_png(path_to: dict):
+    """
+    Проверка наличия png файлов-кадров, для которых будет посчитан
+    поток.
+    """
     walk = os.walk(path_to['png'])
     _, subdir, files = next(walk)
     if not subdir and not files:
@@ -65,15 +81,21 @@ def check_png(path_to):
 
 def calc_opt_flow(path_to):
     check_png(path_to)
+
     png_folder = path_to['png']
     video_folder = path_to['inp']
 
     for par_dir, subdir, files in os.walk(png_folder):
         if subdir:
+            # Не спустились до файлов
             continue
-        for image in files:
-            video_file_path = os.path.join(video_folder,
-                                           make_path_from_name(image, path_to['inp']) + '.avi')
-            frame_num = get_frame_num_from_filename(image)
-            prev_frames = frame_num
-            Farneback(video_file_path, prev_frames)
+
+        # Создаём путь до нужного видео, получаем список всех кадров,
+        # для которых нужно посчитать поток, и формируем директорию
+        # для сохраняемых картинок
+        file_prefix = get_file_prefix(files[0])
+        save_file_dir = preparation(file_prefix, path_to['opt'])
+        video_file = make_path_from_name(file_prefix, video_folder) + '.avi'
+        frames_list = map(get_frame_num_from_filename, files)
+        
+        Farneback(video_file, save_file_dir, frames_list)

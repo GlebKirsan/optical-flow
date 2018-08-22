@@ -7,9 +7,10 @@ from .common import get_file_prefix, make_path_from_name
 
 def strip_data(data: str) -> str:
     """
-    Избавление от лишних пробелов в данных
-    :param data:
-    :return: Строка без лишних пробелов
+    Избавление от лишних пробелов в данных.
+
+    :param data: Строка, которую нужно обработать.
+    :return: Строка без лишних пробелов.
 
     """
     lines = data.split('\n')
@@ -19,11 +20,11 @@ def strip_data(data: str) -> str:
     return result
 
 
-def extract_data_from_frame_object(FrameObjects):
+def extract_data_from_frame_object(FrameObjects) -> dict:
     """
 
-    :param FrameObjects:
-    :return:
+    :param FrameObjects: Данные о кадре.
+    :return: Словарь с извлечённой разметкой.
 
     """
     data = {}
@@ -35,6 +36,7 @@ def extract_data_from_frame_object(FrameObjects):
             text = None
 
             if info.tag in ['vertices', 'rect']:
+                # Требуется доп. обработка
                 text = strip_data(info.text)
 
             transport[info.tag] = text or info.text
@@ -58,9 +60,11 @@ def get_data_from_xml_file(path_to_xml):
     frames_data = {}
 
     for _ in FrameDataArray:
+        # Получаем номер кадра и данные для него
         frame_num, frame_object = int(_[0].text), _[1]
 
         if not frame_object:
+            # Если кадр без данных
             continue
 
         frames_data[frame_num] = extract_data_from_frame_object(frame_object)
