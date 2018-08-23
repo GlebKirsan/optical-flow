@@ -49,7 +49,7 @@ def Farneback(video_file: str, save_file_dir: str, queued_frames: PriorityQueue)
 
     ret, pr_frame = cap.read()
 
-    frame_to_write = queued_frames.get_nowait()
+    frame_to_write = queued_frames.get()
     for i in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))):
         ret, nx_frame = cap.read()
 
