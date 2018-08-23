@@ -1,7 +1,7 @@
 import os
 import cv2
 import numpy as np
-from time import time
+from queue import PriorityQueue
 
 from src.common import make_path_from_name, get_frame_num_from_filename, get_file_prefix
 from .get_frame import extract_frame
@@ -19,6 +19,7 @@ def preparation(file_prefix: str, path_to_opt_folder: dict) -> str:
     """
     save_file_dir = make_path_from_name(file_prefix, path_to_opt_folder)
     os.makedirs(save_file_dir, exist_ok=True)
+
     return save_file_dir
 
 
@@ -35,35 +36,39 @@ def draw_hsv(flow):
     return bgr
 
 
-def Farneback(video_file: str, save_file_dir: str, frames_list: map) -> None:
+def Farneback(video_file: str, save_file_dir: str, queued_frames: PriorityQueue) -> None:
     """
     Расчёт оптического потока методом Farneback.
 
     :param video_file: Путь до видео, из которого будут извлекаться кадры.
     :param save_file_dir: Папка, куда будут сохраняться изображения.
-    :param frames_list: map с кадрами, которые нужно обработать.
+    :param queued_frames: Очередь с кадрами, которые нужно обработать.
 
     """
     cap = cv2.VideoCapture(video_file)
 
-    for frame_num in frames_list:
-        cap.set(1, frame_num - 1)
-        ret, frame1 = cap.read()
-        pr_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+    ret, pr_frame = cap.read()
 
-        ret, frame2 = cap.read()
-        nx_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-        flow = cv2.calcOpticalFlowFarneback(pr_frame,
-                                            nx_frame,
-                                            None, 0.5, 3, 15, 3, 5, 1.2, 0)
-        hsv = draw_hsv(flow)
-        cv2.imwrite(
-            os.path.join(
-                save_file_dir,
-                save_file_dir + f".{str(frame_num).zfill(6)}.Far.png"
-            ),
-            hsv
-        )
+    frame_to_write = queued_frames.get_nowait()
+    for i in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))):
+        ret, nx_frame = cap.read()
+
+        # Условие, на надобность обработки кадра
+        if i == frame_to_write:
+            pr_frame = cv2.cvtColor(pr_frame, cv2.COLOR_BGR2GRAY)
+            nx_frame = cv2.cvtColor(nx_frame, cv2.COLOR_BGR2GRAY)
+
+            flow = cv2.calcOpticalFlowFarneback(pr_frame,
+                                                nx_frame,
+                                                None, 0.5, 3, 15, 3, 5, 1.2, 0)
+            hsv = draw_hsv(flow)
+            cv2.imwrite(save_file_dir + f".{str(i).zfill(6)}.Far.png",
+                        hsv)
+
+            if not queued_frames.empty():
+                frame_to_write = queued_frames.get()
+
+        pr_frame = nx_frame
 
 
 def check_png(path_to: dict):
@@ -90,12 +95,18 @@ def calc_opt_flow(path_to):
             # Не спустились до файлов
             continue
 
-        # Создаём путь до нужного видео, получаем список всех кадров,
-        # для которых нужно посчитать поток, и формируем директорию
-        # для сохраняемых картинок
+        # Создаём путь до нужного видео, получаем map всех кадров,
+        # для которых нужно посчитать поток, и сохраняем их в очередь
+        # с приоритетом и формируем директорию для сохраняемых картинок
         file_prefix = get_file_prefix(files[0])
         save_file_dir = preparation(file_prefix, path_to['opt'])
+
         video_file = make_path_from_name(file_prefix, video_folder) + '.avi'
-        frames_list = map(get_frame_num_from_filename, files)
-        
-        Farneback(video_file, save_file_dir, frames_list)
+        frames_map = map(get_frame_num_from_filename, files)
+
+        queued_frames = PriorityQueue()
+        [queued_frames.put(i) for i in frames_map]
+
+        Farneback(video_file,
+                  os.path.join(save_file_dir, file_prefix),
+                  queued_frames)
