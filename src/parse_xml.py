@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import xml.etree.ElementTree as ET
 
 from .common import get_file_prefix, make_path_from_name
@@ -75,10 +76,9 @@ def get_data_from_xml_file(path_to_xml):
 def create_json_with_frame_data(path_to: dict) -> None:
     """
     Создание json файлов для каждого кадра, имеющего разметку в папке mar.
-    :param path_to:
-    :return:
 
     """
+    logging.info("Создание json файлов из xml")
     for directory, sub_dirs, files in os.walk(path_to['mar']):
 
         # Если есть директории, то до файлов не спустились
@@ -86,10 +86,11 @@ def create_json_with_frame_data(path_to: dict) -> None:
             continue
 
         xml_file = files[0]
+        logging.info(f"Обработка xml-файла {xml_file}")
         payload = get_data_from_xml_file(os.path.join(directory, xml_file))
 
         if not payload:
-            # В xml файле не было размеченных кадров
+            logging.info(f"В {xml_file} не было размеченных кадров.")
             continue
 
         prefix = get_file_prefix(xml_file)
@@ -103,4 +104,5 @@ def create_json_with_frame_data(path_to: dict) -> None:
             file_name = prefix + f'.{str(frame).zfill(6)}.json'
 
             with open(os.path.join(sub_dir, file_name), 'w') as jsn_file:
+                logging.info(f"Сохраняется файл разметки {jsn_file.name}")
                 json.dump(obj=data, fp=jsn_file, indent=4)

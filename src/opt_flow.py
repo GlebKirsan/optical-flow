@@ -1,5 +1,6 @@
 import os
 import cv2
+import logging
 import numpy as np
 from queue import PriorityQueue
 
@@ -62,8 +63,10 @@ def Farneback(video_file: str, save_file_dir: str, queued_frames: PriorityQueue)
                                                 nx_frame,
                                                 None, 0.5, 3, 15, 3, 5, 1.2, 0)
             hsv = draw_hsv(flow)
-            cv2.imwrite(save_file_dir + f".{str(i).zfill(6)}.Far.png",
-                        hsv)
+            file_name = save_file_dir + f".{str(i).zfill(6)}.Far.png"
+
+            cv2.imwrite(file_name, hsv)
+            logging.info(f"Сохранён файл {file_name}")
 
             if not queued_frames.empty():
                 frame_to_write = queued_frames.get()
@@ -79,9 +82,9 @@ def check_png(path_to: dict):
     walk = os.walk(path_to['png'])
     _, subdir, files = next(walk)
     if not subdir and not files:
-        print("png файлы отсутствуют, будут созданы автоматически")
+        logging.info("png файлы отсутствуют, будут созданы автоматически.")
         extract_frame(path_to)
-        print("png файлы созданы")
+        logging.info("png файлы созданы.")
 
 
 def calc_opt_flow(path_to):
@@ -89,7 +92,7 @@ def calc_opt_flow(path_to):
 
     png_folder = path_to['png']
     video_folder = path_to['inp']
-
+    logging.info("Расчёт оптического потока.")
     for par_dir, subdir, files in os.walk(png_folder):
         if subdir:
             # Не спустились до файлов
@@ -110,3 +113,5 @@ def calc_opt_flow(path_to):
         Farneback(video_file,
                   os.path.join(save_file_dir, file_prefix),
                   queued_frames)
+
+    logging.info("Расчёт выполнен.")

@@ -1,5 +1,6 @@
 import cv2
 import os
+import logging
 
 from src.common import get_file_prefix
 from src.common import make_path_from_name
@@ -49,9 +50,9 @@ def check_json_files(path_to):
     """
     jsn_folders = os.listdir(path_to['jsn'])
     if not jsn_folders:
-        print("jsn файлы отсутствуют, будут созданы автоматически")
+        logging.info("jsn файлы отсутствуют, будут созданы автоматически")
         create_json_with_frame_data(path_to)
-        print("jsn файлы созданы")
+        logging.info("jsn файлы созданы")
 
 
 def extract_frame(path_to: dict):
@@ -121,5 +122,6 @@ def save_frames_from_video(frame_num_list: list, save_file: str, video_path: str
         cap.set(1, frame_num)
         ret, frame = cap.read()
         file_name = save_file.format(str(frame_num).zfill(6)) + '.png'
+        logging.info(f"Сохранется файл {file_name}")
         cv2.imwrite(file_name, frame)
     cap.release()
