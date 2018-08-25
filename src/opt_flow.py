@@ -2,6 +2,7 @@ import os
 import cv2
 import logging
 import numpy as np
+from time import time
 from queue import PriorityQueue
 
 from src.common import make_path_from_name, get_frame_num_from_filename, get_file_prefix
@@ -24,15 +25,21 @@ def preparation(file_prefix: str, path_to_opt_folder: dict) -> str:
     return save_file_dir
 
 
-def draw_hsv(flow):
+def draw_hsv(flow, mask=None):
+    import pdb
+    pdb.set_trace()
     h, w = flow.shape[:2]
     fx, fy = flow[:, :, 0], flow[:, :, 1]
+
     ang = np.arctan2(fy, fx) + np.pi
     v = np.sqrt(fx*fx + fy*fy)
     hsv = np.zeros((h, w, 3), np.uint8)
-    hsv[..., 0] = ang * (180/np.pi / 2)
-    hsv[..., 1] = 255
-    hsv[..., 2] = np.minimum(v*4, 255)
+
+    hsv[:, :, 0] = ang * (90 / np.pi)
+    hsv[:, :, 1] = 255
+    hsv[:, :, 2] = np.minimum(v * 4, 255)
+
+    hsv[mask] = 0
     bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
     return bgr
 
@@ -50,10 +57,10 @@ def Farneback(video_file: str, save_file_dir: str, queued_frames: PriorityQueue)
 
     ret, pr_frame = cap.read()
 
+    kernel = np.ones((4, 4), np.uint8)
     frame_to_write = queued_frames.get()
     for i in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))):
         ret, nx_frame = cap.read()
-
         # Условие, на надобность обработки кадра
         if i == frame_to_write:
             pr_frame = cv2.cvtColor(pr_frame, cv2.COLOR_BGR2GRAY)
@@ -62,7 +69,12 @@ def Farneback(video_file: str, save_file_dir: str, queued_frames: PriorityQueue)
             flow = cv2.calcOpticalFlowFarneback(pr_frame,
                                                 nx_frame,
                                                 None, 0.5, 3, 15, 3, 5, 1.2, 0)
-            hsv = draw_hsv(flow)
+
+            mask = cv2.Canny(nx_frame, 100, 300)
+            mask = cv2.dilate(mask, kernel, iterations=1) == 0
+
+            hsv = draw_hsv(flow, mask)
+
             file_name = save_file_dir + f".{str(i).zfill(6)}.Far.png"
 
             cv2.imwrite(file_name, hsv)
@@ -109,9 +121,10 @@ def calc_opt_flow(path_to):
 
         queued_frames = PriorityQueue()
         [queued_frames.put(i) for i in frames_map]
-
+        t = time()
         Farneback(video_file,
                   os.path.join(save_file_dir, file_prefix),
                   queued_frames)
+        print(time() - t)
 
     logging.info("Расчёт выполнен.")
