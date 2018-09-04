@@ -41,7 +41,7 @@ def build_excepting_dirs(directory) -> dict:
         if os.path.isdir(os.path.join(directory, file_name))
     }
 
-    for i in ['opt', 'jsn', 'png']:
+    for i in ['opt', 'jsn', 'png', 'viz', 'logs']:
 
         if i not in path_to:
             new_dir = os.path.join(directory, i)
