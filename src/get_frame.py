@@ -16,7 +16,7 @@ def check(avi_list: list, jsn_list: list) -> list:
 
     """
     res_avi_list = []
-    jsn_list = map(get_file_prefix, jsn_list)
+    jsn_list = set(map(get_file_prefix, jsn_list))
     avi_list_pref = map(get_file_prefix, avi_list)
 
     for i, avi in enumerate(avi_list_pref):
@@ -66,8 +66,7 @@ def extract_frame(path_to: dict):
 
         # Выбираем только файлы с расширением avi
         videos_list = list(filter(lambda file_name: file_name.endswith('.avi'),
-                                  os.listdir(cur_dir))
-                           )
+                                  os.listdir(cur_dir)))
 
         os.chdir(path_to['jsn'])
 
@@ -87,6 +86,7 @@ def extract_frame(path_to: dict):
 
         # Проверка на наличие разметки для видеофайлов текущей директории
         if not actual_avi_list:
+            print(directory)
             continue
 
         avi_frame_list = get_frames_in_video_dict(path_to['jsn'],
