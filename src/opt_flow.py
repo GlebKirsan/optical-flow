@@ -26,7 +26,7 @@ def preparation(file_prefix: str, path_to: dict) -> dict:
     return save_file_dir
 
 
-def draw_hsv(flow, mask=None):
+def draw_hsv(flow):
     h, w = flow.shape[:2]
     fx, fy = flow[:, :, 0], flow[:, :, 1]
 
@@ -38,12 +38,34 @@ def draw_hsv(flow, mask=None):
     hsv[:, :, 1] = 255
     hsv[:, :, 2] = np.minimum(v * 4, 255)
 
-    hsv[mask] = 0
     bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
     return bgr
 
 
-def Farneback(video_file: str, dir_for_opt: str, dir_for_viz: str,
+def process_image(frame, frame_to_cmp, cur_frame, dirs, vizualize, vertical):
+    pr_frame = cv2.Canny(frame_to_cmp, 50, 300)
+    nx_frame = cv2.Canny(cur_frame, 50, 300)
+
+    flow = cv2.calcOpticalFlowFarneback(pr_frame,
+                                        nx_frame,
+                                        None, 0.5, 21, 21, 16, 7, 1.5, flags=1)
+
+    hsv = draw_hsv(flow)
+    frame_str = str(frame).zfill(6)
+    file_name = dirs['opt'] + f".{frame_str}.Far.png"
+
+    # cv2.imwrite(file_name, hsv)
+
+    logging.info(f"Сохранён файл {file_name}")
+
+    if vizualize:
+        viz_image = (np.vstack if vertical else np.hstack)((cur_frame, hsv))
+        viz_file_name = dirs['viz'] + f".{frame_str}.viz.png"
+        cv2.imwrite(viz_file_name, viz_image)
+        logging.info(f"Сохранён файл {viz_file_name}")
+
+
+def Farneback(video_file: str, dirs: dict,
               queued_frames: PriorityQueue,
               vizualize: bool,
               vertical: bool) -> None:
@@ -51,8 +73,7 @@ def Farneback(video_file: str, dir_for_opt: str, dir_for_viz: str,
     Расчёт оптического потока методом Farneback.
 
     :param video_file: Путь до видео, из которого будут извлекаться кадры.
-    :param dir_for_opt: Папка, куда будут сохраняться изображения.
-    :param dir_for_viz: Папка для хранения склеенных кадров с оптическим потоком для сравнения.
+    :param dirs: Словарь с путями до соотвествующих текущему видео папок opt и viz
     :param queued_frames: Очередь с кадрами, которые нужно обработать.
     :param vizualize: Разрешение на запись картинок с потокм и кадрами.
     :param vertical: Если хранит True и vizualize=True, то изображение с потоком и чистым кадром будет соединено вертикально.
@@ -61,41 +82,16 @@ def Farneback(video_file: str, dir_for_opt: str, dir_for_viz: str,
 
     ret, pr_frame = cap.read()
 
-    kernel = np.ones((2, 2), np.uint8)
     frame_to_write = queued_frames.get()
     frame_to_cmp = pr_frame
     dist = 15
     for i in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))):
-        ret, nx_frame = cap.read()
+        ret, cur_frame = cap.read()
         if frame_to_write - dist == i:
-            frame_to_cmp = nx_frame
+            frame_to_cmp = cur_frame
         # Условие, на надобность обработки кадра
         if i == frame_to_write:
-            test1 = cv2.Canny(frame_to_cmp, 50, 300)
-            test2 = cv2.Canny(nx_frame, 50, 300)
-
-            flow = cv2.calcOpticalFlowFarneback(test1,
-                                                test2,
-                                                None, 0.5, 21, 21, 16, 7, 1.5, flags=1)
-
-            # Находим границы, делаем их толще и на базе этого создаём маску
-            # в местах, где нет границ, чтобы потом занулить их в потоке
-            mask = cv2.dilate(test2, kernel, iterations=2) == 0
-
-            hsv = draw_hsv(flow, mask)
-
-            frame_str = str(i).zfill(6)
-            file_name = dir_for_opt + f".{frame_str}.Far.png"
-
-            # cv2.imwrite(file_name, hsv)
-
-            logging.info(f"Сохранён файл {file_name}")
-
-            if vizualize:
-                viz_image = (np.vstack if vertical else np.hstack)((nx_frame, hsv))
-                viz_file_name = dir_for_viz + f".{frame_str}.viz.png"
-                cv2.imwrite(viz_file_name, viz_image)
-                logging.info(f"Сохранён файл {viz_file_name}")
+            process_image(i, frame_to_cmp, cur_frame, dirs, vizualize, vertical)
 
             if not queued_frames.empty():
                 frame_to_write = queued_frames.get()
@@ -139,10 +135,13 @@ def calc_opt_flow(path_to: dict, vizualize=False, vertical=False):
 
         dir_for_opt = os.path.join(save_file_dir['opt'], file_prefix)
         dir_for_viz = os.path.join(save_file_dir['viz'], file_prefix)
+        dirs = {
+            'opt': dir_for_opt,
+            'viz': dir_for_viz
+        }
 
         Farneback(video_file,
-                  dir_for_opt,
-                  dir_for_viz,
+                  dirs,
                   queued_frames,
                   vizualize,
                   vertical)
