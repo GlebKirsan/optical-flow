@@ -26,7 +26,7 @@ def preparation(file_prefix: str, path_to: dict) -> dict:
     return save_file_dir
 
 
-def draw_hsv(flow):
+def draw_hsv(flow, mask):
     h, w = flow.shape[:2]
     fx, fy = flow[:, :, 0], flow[:, :, 1]
 
@@ -37,12 +37,25 @@ def draw_hsv(flow):
     hsv[:, :, 0] = ang * (90 / np.pi)
     hsv[:, :, 1] = 255
     hsv[:, :, 2] = np.minimum(v * 4, 255)
+    hsv[mask] = 0
 
     bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
     return bgr
 
 
-def process_image(frame, frame_to_cmp, cur_frame, dirs, vizualize, vertical):
+def process_image(frame, frame_to_cmp, cur_frame, dirs, kernel, vizualize, vertical):
+    """
+    Функция обработки кадра.
+    :param frame: Номер текущего кадра.
+    :param frame_to_cmp: Кадр, с которым будет сравниваться текущий.
+    :param cur_frame: Текущий кадр.
+    :param dirs: Словарь с путями до соотвествующих текущему видео папок opt и viz.
+    :param kernel: Ядро для морфологического расширения.
+    :param vizualize: Разрешение на запись картинок с потокм и кадрами.
+    :param vertical: Если хранит True и vizualize=True, то изображение с потоком и чистым кадром будет
+    соединено вертикально.
+    :return:
+    """
     pr_frame = cv2.Canny(frame_to_cmp, 50, 300)
     nx_frame = cv2.Canny(cur_frame, 50, 300)
 
@@ -50,7 +63,12 @@ def process_image(frame, frame_to_cmp, cur_frame, dirs, vizualize, vertical):
                                         nx_frame,
                                         None, 0.5, 21, 21, 16, 7, 1.5, flags=1)
 
-    hsv = draw_hsv(flow)
+    # Находим границы, делаем их толще и на базе этого создаём маску
+    # в местах, где нет границ, чтобы потом занулить их в потоке
+    mask = cv2.dilate(nx_frame, kernel) == 0
+
+    hsv = draw_hsv(flow, mask)
+
     frame_str = str(frame).zfill(6)
     file_name = dirs['opt'] + f".{frame_str}.Far.png"
 
@@ -65,23 +83,24 @@ def process_image(frame, frame_to_cmp, cur_frame, dirs, vizualize, vertical):
         logging.info(f"Сохранён файл {viz_file_name}")
 
 
-def Farneback(video_file: str, dirs: dict,
-              queued_frames: PriorityQueue,
+def Farneback(video_file: str, dirs: dict, queued_frames: PriorityQueue,
               vizualize: bool,
               vertical: bool) -> None:
     """
     Расчёт оптического потока методом Farneback.
 
     :param video_file: Путь до видео, из которого будут извлекаться кадры.
-    :param dirs: Словарь с путями до соотвествующих текущему видео папок opt и viz
+    :param dirs: Словарь с путями до соотвествующих текущему видео папок opt и viz.
     :param queued_frames: Очередь с кадрами, которые нужно обработать.
     :param vizualize: Разрешение на запись картинок с потокм и кадрами.
-    :param vertical: Если хранит True и vizualize=True, то изображение с потоком и чистым кадром будет соединено вертикально.
+    :param vertical: Если хранит True и vizualize=True, то изображение с потоком и чистым кадром будет
+     соединено вертикально.
     """
     cap = cv2.VideoCapture(video_file)
 
     ret, pr_frame = cap.read()
 
+    kernel = np.ones((2,2), dtype=np.uint8)
     frame_to_write = queued_frames.get()
     frame_to_cmp = pr_frame
     dist = 15
@@ -89,9 +108,10 @@ def Farneback(video_file: str, dirs: dict,
         ret, cur_frame = cap.read()
         if frame_to_write - dist == i:
             frame_to_cmp = cur_frame
+
         # Условие, на надобность обработки кадра
         if i == frame_to_write:
-            process_image(i, frame_to_cmp, cur_frame, dirs, vizualize, vertical)
+            process_image(i, frame_to_cmp, cur_frame, dirs, kernel, vizualize, vertical)
 
             if not queued_frames.empty():
                 frame_to_write = queued_frames.get()
