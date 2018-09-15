@@ -107,7 +107,7 @@ def Farneback(video_file: str, dirs: dict, queued_frames: PriorityQueue,
 
     ret, pr_frame = cap.read()
 
-    kernel = np.ones((2,2), dtype=np.uint8)
+    kernel = np.ones((2, 2), dtype=np.uint8)
     frame_to_write = queued_frames.get()
     frame_to_cmp = pr_frame
     dist = 15

@@ -23,10 +23,8 @@ def strip_data(data: str) -> str:
 
 def extract_data_from_frame_object(FrameObjects) -> dict:
     """
-
     :param FrameObjects: Данные о кадре.
     :return: Словарь с извлечённой разметкой.
-
     """
     data = {}
 
