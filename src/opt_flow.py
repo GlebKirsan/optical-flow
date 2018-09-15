@@ -79,7 +79,7 @@ def process_image(frame: int, frame_to_cmp: np.ndarray, cur_frame: np.ndarray, d
     frame_str = str(frame).zfill(6)
     file_name = dirs['opt'] + f".{frame_str}.Far.png"
 
-    # cv2.imwrite(file_name, hsv)
+    cv2.imwrite(file_name, hsv)
 
     logging.info(f"Сохранён файл {file_name}")
 
