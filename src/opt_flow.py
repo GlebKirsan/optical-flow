@@ -26,7 +26,13 @@ def preparation(file_prefix: str, path_to: dict) -> dict:
     return save_file_dir
 
 
-def draw_hsv(flow, mask):
+def draw_hsv(flow: np.ndarray, mask: np.ndarray):
+    """
+    Функция обработки потока.
+    :param flow: Посчитанный поток.
+    :param mask: Булевый numpy массив для устранения шума.
+    :return:
+    """
     h, w = flow.shape[:2]
     fx, fy = flow[:, :, 0], flow[:, :, 1]
 
@@ -43,7 +49,8 @@ def draw_hsv(flow, mask):
     return bgr
 
 
-def process_image(frame, frame_to_cmp, cur_frame, dirs, kernel, vizualize, vertical):
+def process_image(frame: int, frame_to_cmp: np.ndarray, cur_frame: np.ndarray, dirs: dict, kernel: np.ndarray,
+                  vizualize:bool, vertical: bool) -> None:
     """
     Функция обработки кадра.
     :param frame: Номер текущего кадра.
@@ -111,6 +118,7 @@ def Farneback(video_file: str, dirs: dict, queued_frames: PriorityQueue,
 
         # Условие, на надобность обработки кадра
         if i == frame_to_write:
+            print(type(frame_to_cmp))
             process_image(i, frame_to_cmp, cur_frame, dirs, kernel, vizualize, vertical)
 
             if not queued_frames.empty():
