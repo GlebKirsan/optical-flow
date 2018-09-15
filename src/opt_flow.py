@@ -118,7 +118,6 @@ def Farneback(video_file: str, dirs: dict, queued_frames: PriorityQueue,
 
         # Условие, на надобность обработки кадра
         if i == frame_to_write:
-            print(type(frame_to_cmp))
             process_image(i, frame_to_cmp, cur_frame, dirs, kernel, vizualize, vertical)
 
             if not queued_frames.empty():
