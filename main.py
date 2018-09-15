@@ -1,22 +1,14 @@
-import argparse
 import os
-from src.common import build_dirs
-from src.parse_xml import frame_info_to_json
+import argparse
+import logging
+import time
+
+from src.common import build_excepting_dirs
+from src.parse_xml import create_json_with_frame_data
 from src.get_frame import extract_frame
 from src.opt_flow import calc_opt_flow
 
-
-def _main(**kwargs):
-    path_to = build_dirs(kwargs['dir'])
-    if kwargs['jsn']:
-        frame_info_to_json(path_to)
-    if kwargs['png']:
-        extract_frame(path_to)
-    if kwargs['opt']:
-        calc_opt_flow(path_to)
-
-
-if __name__ == "__main__":
+def parse_args():
     arg_parser = argparse.ArgumentParser()
 
     arg_parser.add_argument("directory",
@@ -25,21 +17,54 @@ if __name__ == "__main__":
 
     keys = arg_parser.add_argument_group('keys')
     keys.add_argument('--json', '-j',
-                      help='Extract non-empty frames from directory/mar/.../.../*.xml '
-                           'to directory/jsn/.../.../xxx.yyy.yyy.{right, left}.{frame_number}.json',
+                      help='Extract non-empty frames from '
+                           'directory/mar/.../.../*.xml '
+                           'to directory/jsn/.../.../*.json',
                       action='store_true')
     keys.add_argument('--png', '-p',
-                      help='Extract non-empty frames from videos to png files',
+                      help='Extract non-empty frames from videos to png files.',
                       action='store_true')
     keys.add_argument('--optic', '-o',
-                      help='Calculate optical flow for existing frames in png',
+                      help='Calculate optical flow for existing frames in png.',
+                      action='store_true')
+    keys.add_argument('--verbose', '-v',
+                      help='Enable verbosity.',
+                      action='store_true')
+    keys.add_argument('--vertical',
+                      help='Concatenate optical flow and clear frame in one image.'
+                           'vertically.',
                       action='store_true')
 
-    args = arg_parser.parse_args()
+    return arg_parser.parse_args()
+
+
+def _main(args):
+    path_to = build_excepting_dirs(args.directory)
+    verbose = args.verbose
+    if verbose:
+        today = time.strftime("%Y-%m-%d-%H.%M.%S", time.localtime())
+        log_file = os.path.join(path_to['logs'], f'{today}_logs.log')
+        logging.basicConfig(level=logging.INFO,
+                            filename=log_file,
+                            filemode='w',
+                            style='{',
+                            format='{message}')
+        logging.info(args)
+
+    if args.json:
+        create_json_with_frame_data(path_to)
+
+    if args.png:
+        extract_frame(path_to)
+
+    if args.optic:
+        calc_opt_flow(path_to, args.vertical)
+
+
+if __name__ == "__main__":
+    args = parse_args()
     if os.path.isdir(args.directory):
-        _main(dir=args.directory,
-              jsn=args.json,
-              png=args.png,
-              opt=args.optic)
+        _main(args)
     else:
         raise NotADirectoryError(f"{args.directory} не является директорией!")
+
