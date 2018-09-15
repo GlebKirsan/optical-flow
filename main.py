@@ -30,6 +30,9 @@ def parse_args():
     keys.add_argument('--verbose', '-v',
                       help='Enable verbosity.',
                       action='store_true')
+    keys.add_argument('--vizualize',
+                      help='Enable saving opt flow with frame in viz folder',
+                      action='store_true')
     keys.add_argument('--vertical',
                       help='Concatenate optical flow and clear frame in one image.'
                            'vertically.',
@@ -58,7 +61,7 @@ def _main(args):
         extract_frame(path_to)
 
     if args.optic:
-        calc_opt_flow(path_to, args.vertical)
+        calc_opt_flow(path_to, args.vizualize, args.vertical)
 
 
 if __name__ == "__main__":
